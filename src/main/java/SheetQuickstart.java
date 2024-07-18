@@ -38,8 +38,10 @@ public class SheetQuickstart {
     private static int schoolIndex = -1;
     private static int personalIndex = -1;
     private static int phoneIndex = -1;
-    private static int submitIndex = -1;
-    private static int meetingIndex = -1;
+    private static List<Integer> submitIndex = new ArrayList<>();
+    private static List<Integer> meetingIndex = new ArrayList<>();
+    private static List<String> meetingNames = new ArrayList<>();
+    private static List<Integer> warningIndex = new ArrayList<>();
 
     /**
      * Global instance of the scopes required by this quickstart.
@@ -112,9 +114,13 @@ public class SheetQuickstart {
             } else if (column.contains("phone")) {
                 phoneIndex = i;
             } else if (column.contains("submitted")) {
-                submitIndex = i;
+                submitIndex.add(i);
             } else if (column.contains("meeting")) {
-                meetingIndex = i;
+                meetingIndex.add(i);
+                String[] words = column.split("\\s+");
+                meetingNames.add(words[0].toString());
+            } else if (column.contains("sent")) {
+                warningIndex.add(i);
             }
         }
 
@@ -126,6 +132,8 @@ public class SheetQuickstart {
             System.out.println(titles);
             try {
                 for (List<Object> row : values) {
+                    System.out.println(row.size());
+                    System.out.println(row);
                     String name = row.get(firstIndex).toString() + " " + row.get(lastIndex).toString();
                     //System.out.println(row.get(4));
                     int grade = Integer.parseInt(row.get(gradeIndex).toString());
@@ -135,8 +143,25 @@ public class SheetQuickstart {
                             Arrays.asList(row.get(schoolIndex).toString(), row.get(personalIndex).toString(),
                                     row.get(phoneIndex).toString())
                     );
-                    student.add(new StudentInfo(name, grade, id, date, contact, new ArrayList<>(), new ArrayList<>(),
-                            new ArrayList<>()));
+                    List<String> forms = new ArrayList<>();
+                    List<String> meeting = new ArrayList<>();
+                    List<String> sent = new ArrayList<>();
+
+                    for (int sub : submitIndex) {
+                        forms.add(row.get(sub).toString());
+                    }
+                    for (int meet : meetingIndex) {
+                        meeting.add(row.get(meet).toString());
+                    }
+                    for (int sen : warningIndex) {
+                        if (sen >= row.size()) {
+                            sent.add("");
+                        } else {
+                            sent.add(row.get(sen).toString());
+                        }
+                    }
+                    student.add(new StudentInfo(name, grade, id, date, contact, forms, new ArrayList<>(),
+                            meeting, meetingNames, sent));
                 }
             } catch (IndexOutOfBoundsException e) {
                 System.out.println("Sheet not formatted correctly");
@@ -159,19 +184,12 @@ public class SheetQuickstart {
             System.out.println(stud.studentProfile());
         }
 
+
         System.out.println("Welcome to NHS Sheet Management");
 
-        Scanner scanner = new Scanner(System.in);
-
-        while (true) {
-            String userInput = scanner.nextLine();
-
-            if (userInput.equalsIgnoreCase("done") || userInput.equalsIgnoreCase("close")) {
-                break;
-            }
+        userInput();
 
 
-        }
 
     }
 
@@ -187,6 +205,39 @@ public class SheetQuickstart {
             }
         }
         return grade;
+    }
+
+    public static List<String> getForms (List<Object> row, List<Integer> index) {
+        List<String> forms = new ArrayList<>();
+        for (int i : index) {
+            forms.add(row.get(i).toString());
+        }
+        return forms;
+    }
+
+    public static void userInput () {
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("Enter Read Mode or Write Mode");
+            String userInput = scanner.nextLine();
+
+            if (userInput.equalsIgnoreCase("read")) {
+                StudentList read = new StudentList(student);
+                if (read.userIn()) {
+                    return;
+                }
+                System.out.println("Exiting Read Mode");
+            }
+
+            if (userInput.equalsIgnoreCase("done") || userInput.equalsIgnoreCase("close")) {
+                return;
+            }
+
+            //format for user input name:john doe or attribute:grade, attendance, info:email, phone number,
+
+
+        }
     }
 
 
