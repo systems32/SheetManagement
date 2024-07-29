@@ -1,4 +1,14 @@
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoField;
+import java.time.Month;
 
 public class StudentInfo {
     final String name;
@@ -12,18 +22,22 @@ public class StudentInfo {
 
     private List<String> warn;
 
+    private static final Logger logger = LogManager.getLogger(StudentInfo.class);
+
     public StudentInfo(String name, int grade, int idNumber, String dateJoined, List<String> contact,
                        List<String> forms, List<Integer> dues, List<String> attendance, List<String> meeting,
                        List<String> warn) {
         this.name = name;
         this.grade = grade;
         this.idNumber = idNumber;
-        this.dateJoined = dateJoined;
+        int spaceIndex = dateJoined.indexOf(' ');
+        this.dateJoined = dateJoined.substring(0, spaceIndex);
         this.contact = contact;
         this.forms = forms;
         this.dues = dues;
-        this.attendence = formatAttendance(attendance, meeting);
         this.warn = warn;
+        this.attendence = formatAttendance(attendance, meeting);
+        this.warn = formatWarnings(warn, meeting);
 
     }
 
@@ -31,7 +45,7 @@ public class StudentInfo {
         int spaceIndex = dateJoined.indexOf(' ');
 
         return "Student: " + name + " | " + grade + "th grade | ID: " + idNumber + "\n" +
-                "   Joined: " + dateJoined.substring(0, spaceIndex) + "\n" +
+                "   Joined: " + dateJoined + "\n" +
                 "   Contact Info: " + contact;
     }
 
@@ -72,33 +86,77 @@ public class StudentInfo {
     }
 
     private List<String> formatAttendance(List<String> attendance, List<String> meetings) {
-        for (int i = 0; i < attendance.size(); i++) {
-            if (isNumeric(attendance.get(i)) || attendance.get(i).equalsIgnoreCase("x")) {
-                attendance.set(i, meetings.get(i) + " - " + "x");
-            } else {
-                if (attendance.get(i).equalsIgnoreCase("")) {
-                    attendance.set(i, meetings.get(i) + " - " + "didn't attend");
+        List<String> attendFormat = new ArrayList<>();
+
+        String specifiedDate = "8/8/2023"; // date for comparison
+        DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+                .appendPattern("M/d/")
+                .appendValueReduced(ChronoField.YEAR, 2, 4, 1900)
+                .toFormatter();
+        int newMeetNum = 0;
+
+        try {
+
+            for (int i = 0; i < attendance.size(); i++) {
+                if (isNumeric(attendance.get(i)) || attendance.get(i).equalsIgnoreCase("x")) {
+                    attendFormat.add(meetings.get(i) + " - " + "X");
                 } else {
-                    attendance.set(i, meetings.get(i) + " - " + attendance.get(i));
+                    if (attendance.get(i).equalsIgnoreCase("")) {
+                        if (meetings.get(i).contains("new") || meetings.get(i).contains("workshop")) {
+
+                            LocalDate joinedDate = LocalDate.parse(dateJoined, formatter);
+                            LocalDate today = LocalDate.now();
+                            LocalDate august8thCurrentYear = LocalDate.of(today.getYear(), Month.AUGUST, 10);
+                            LocalDate specDate1 = today.isBefore(august8thCurrentYear) ?
+                                    august8thCurrentYear : august8thCurrentYear.plusYears(1);
+                            LocalDate jan5thCurrentYear = LocalDate.of(today.getYear(), Month.JANUARY, 5);
+                            LocalDate specDate2 = today.isBefore(jan5thCurrentYear) ?
+                                    jan5thCurrentYear : jan5thCurrentYear.plusYears(1);
+
+                            if (joinedDate.isAfter(specDate1) && joinedDate.isBefore(specDate2) && newMeetNum == 0) {
+                                attendFormat.add(meetings.get(i) + " - " + "didn't attend");
+                                if (warn.get(i).equalsIgnoreCase("")) {
+                                    warn.set(i, "warning not sent");
+                                }
+                            } else if (joinedDate.isAfter(specDate2) && newMeetNum == 1) {
+                                attendFormat.add(meetings.get(i) + " - " + "didn't attend");
+                                if (warn.get(i).equalsIgnoreCase("")) {
+                                    warn.set(i, "warning not sent");
+                                }
+                            } else if (joinedDate.isAfter(specDate1) && joinedDate.isAfter(specDate2)) {
+                                i += 3;
+                            }
+                            newMeetNum += 1;
+                        } else {
+                            attendFormat.add(meetings.get(i) + " - " + "didn't attend");
+                            if (warn.get(i).equalsIgnoreCase("")) {
+                                warn.set(i, "warning not sent");
+                            }
+                        }
+                    } else {
+                        attendFormat.add(meetings.get(i) + " - " + attendance.get(i));
+                    }
                 }
             }
+        } catch (DateTimeParseException e) {
+            System.out.println("Invalid date format: " + e.getMessage());
+            System.exit(0);
         }
-        return attendance;
+
+        return attendFormat;
     }
 
-    /*
+
     private List<String> formatWarnings (List<String> warn, List<String> meetings) {
         for (int i = 0; i < warn.size(); i++) {
-            if (isNumeric(attendance.get(i)) || attendance.get(i).equalsIgnoreCase("x")) {
-
-            } else {
-
+            if (!warn.get(i).equalsIgnoreCase("")) {
+                warn.set(i, meetings.get(i) + " - " + warn.get(i));
             }
         }
-        return attendance;
+        return warn;
     }
 
-     */
+
 
     private static boolean isNumeric(String str) {
         try {

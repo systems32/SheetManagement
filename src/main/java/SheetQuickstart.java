@@ -1,3 +1,6 @@
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
@@ -43,6 +46,7 @@ public class SheetQuickstart {
     private static List<String> meetingNames = new ArrayList<>();
     private static List<Integer> warningIndex = new ArrayList<>();
 
+    private static final Logger logger = LogManager.getLogger(SheetQuickstart.class);
     /**
      * Global instance of the scopes required by this quickstart.
      * If modifying these scopes, delete your previously saved tokens/ folder.
@@ -115,12 +119,14 @@ public class SheetQuickstart {
                 phoneIndex = i;
             } else if (column.contains("submitted")) {
                 submitIndex.add(i);
-            } else if (column.contains("meeting")) {
+            } else if (column.contains("meeting") || (column.contains("workshop") && !column.contains("sent"))) {
                 meetingIndex.add(i);
                 String[] words = column.split("\\s+");
                 meetingNames.add(words[0].toString());
             } else if (column.contains("sent")) {
                 warningIndex.add(i);
+            } else if (column.contains("inductee")) {
+
             }
         }
 
@@ -135,7 +141,6 @@ public class SheetQuickstart {
                     System.out.println(row.size());
                     System.out.println(row);
                     String name = row.get(firstIndex).toString() + " " + row.get(lastIndex).toString();
-                    //System.out.println(row.get(4));
                     int grade = Integer.parseInt(row.get(gradeIndex).toString());
                     int id = Integer.parseInt(row.get(studentIndex).toString());
                     String date = row.get(dateIndex).toString();
@@ -164,10 +169,12 @@ public class SheetQuickstart {
                             meeting, meetingNames, sent));
                 }
             } catch (IndexOutOfBoundsException e) {
-                System.out.println("Sheet not formatted correctly");
+                logger.error(e.getMessage());
+                System.out.println("Sheet not formatted correctly"  + e.getMessage());
                 System.exit(0);
             }
         }
+        logger.info("data read");
 
         studentSoph = listByGrade(10);
         studentJr = listByGrade(11);

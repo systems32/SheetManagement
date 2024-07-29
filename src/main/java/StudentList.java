@@ -1,3 +1,6 @@
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -5,6 +8,7 @@ import java.util.Scanner;
 public class StudentList {
 
     private List<StudentInfo> studentSet = new ArrayList<>();
+    private static final Logger logger = LogManager.getLogger(StudentList.class);
 
     public StudentList(List<StudentInfo> studentSet) {
         this.studentSet = studentSet;
@@ -12,8 +16,8 @@ public class StudentList {
 
     public Boolean userIn() {
         Scanner scanner = new Scanner(System.in);
-
         while (true) {
+            logger.info("Receiving student name");
             System.out.println("Enter first name followed by last");
 
             String userInput = scanner.nextLine().trim();
